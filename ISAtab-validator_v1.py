@@ -10,20 +10,33 @@ from tempfile import TemporaryDirectory
 
 isa_config_dir = "./isaconfig-phenotyping-basic"
 isa_tab_dir = argv[1]
+short = 1  # 1: Run validation with shortened s/a files, keeping [num_lines] number of lines.
+num_lines = 3  # should be at least 2 (need the header and 1 row of data).
 
 # Converting all characters to UTF-8
 # ----------------------------------
 
 files = [f for f in os.listdir(isa_tab_dir) if f.endswith('.txt')]
+print('\n* Shortened file validation is ' + ('ENABLED' if short else 'DISABLED') + '. *\n')
 
 with TemporaryDirectory() as tmpdirname:
     print('Created temporary directory:', tmpdirname)
-    print('Converting files to UTF-8.')
+    print('Converting files to UTF-8.\n')
     for f in files:
-        with codecs.open(isa_tab_dir + os.sep + f, 'r') as file:
-            lines = file.read()
-        with codecs.open(tmpdirname + os.sep + f, 'w', encoding='utf8') as file:
-            file.write(lines)
+        if f.lower()[:2] in ['i_', 's_', 'a_']:
+            with codecs.open(isa_tab_dir + os.sep + f, 'r') as file:
+                lines = file.read()
+                if short:
+                    if 'i_' not in f.lower()[:2]:  # investigation files should not be trimmed
+                        lines = lines.split('\n')
+                        if len(lines) > num_lines:
+                            lines = '\n'.join(lines[:num_lines])
+                            print('Trimmed ' + f + ':')
+                            print(lines)  # surviving lines
+                            print()
+
+            with codecs.open(tmpdirname + os.sep + f, 'w', encoding='utf8') as file:
+                file.write(lines)
 
     # Validating ISA-TAB with configuration files
     # -------------------------------------------
